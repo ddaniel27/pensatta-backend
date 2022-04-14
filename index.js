@@ -13,7 +13,11 @@ const routes = require('./routes/router')
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(cors({origin:"http://localhost:3000", credentials: true}))
+app.use(cors({
+    origin:true,
+    credentials: true, 
+    allowedHeaders: ["Content-Type","Set-Cookie"]
+}))
 const configConnection = {
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -37,7 +41,7 @@ app.use(session({
     store: sessionStore,
     name: 'sessionId',
     cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24,
         sameSite: false,
         httpOnly: false
     }
