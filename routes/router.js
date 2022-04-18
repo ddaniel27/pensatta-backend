@@ -1,7 +1,16 @@
 const bcrypt = require('bcryptjs')
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
-const { registerNewUser, checkEmail, createConnection } = require('../controller/sqlQueries.controller')
+const { 
+    registerNewUser, 
+    checkEmail, 
+    createConnection, 
+    getNewAverage, 
+    getUpdatedCurrAverage, 
+    updateValues, 
+    registerNewExercise, 
+    incrementValues,
+    checkInstitution } = require('../controller/sqlQueries.controller')
 const connection = createConnection()
 
 passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", passReqToCallback:true},function verify(req, email, password, cb){
@@ -14,6 +23,7 @@ passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", 
             email: result[0].email,
             name: result[0].name,
             inst: result[0].inst,
+            role: result[0].role,
             borned_on: result[0].borned_on,
             created_at: result[0].created_at
         })
@@ -49,28 +59,63 @@ module.exports = (router) => {
                     borned_on: req.body.borned_on,
                     created_at: new Date()
                 }
-                await registerNewUser(newUser)
-                res.status(200).json({msg: 'User registered', registered: true, exists: false})
+                const instExists = await checkInstitution(newUser.inst)
+                if(!instExists.length) { res.status(200).json({msg: 'Institution not found', exists: false}) }
+                else {
+                    const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'num_students', table: 'institution', target: newUser.inst, score: 0})
+                    await Promise.all([
+                        registerNewUser(newUser),
+                        updateValues({table: 'institution', target: newUser.inst, column: 'average_score', value: result.finalAverage.toFixed(2)}),
+                        incrementValues({table: 'institution', target: newUser.inst, column: 'num_students', increment: 1})
+                    ])
+                    res.status(200).json({msg: 'User registered', registered: true, exists: false})
+                }
             }
         } catch (err) {
             res.status(500).json({err:err, msg:"We have a problem", registered: false})
         }
     })
 
-    router.post('/login',passport.authenticate('local'),function(req,res){
-        res.status(200).json({msg: 'User logged in', logged: true, user: req.user})
-    })
-    router.post('/logout', async function(req, res){
-        await req.logOut()
-        req.session.destroy()
-        await res.clearCookie('sessionId')
-        res.status(200).json({msg: 'User logged out', logged: false})
-    })
     router.get('/login',function(req,res){
         if(req.isAuthenticated()){
         res.status(200).json({msg: 'User logged in', logged: true, user: req.user})
         } else {
         res.status(200).json({msg: 'User not logged in', logged: false})
         }
+    })
+    router.post('/login',passport.authenticate('local'),function(req,res){
+        res.status(200).json({msg: 'User logged in', logged: true, user: req.user})
+    })
+
+    router.post('/exercise', 
+    function(req, res, next){
+        if(!req.isAuthenticated()){
+            res.status(403).json({msg: 'User not logged in', logged: false})
+        }else{
+            next()
+        }
+    },
+    async (req, res) => {
+        try {
+            const { exercise, score, time } = req.body
+            const { id, inst } = req.user
+            const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'total_exercises', table: 'users', target: id, score: score})
+            await Promise.all([
+                updateValues({table: 'user', target: id, column: 'average_score', value: result.finalAverage.toFixed(2)}), 
+                registerNewExercise({exerciseId: exercise, score, studentId:id, time, created_at: new Date()})
+            ])
+            const updatedAverage = await getUpdatedCurrAverage(id, result.initAverage)
+            await updateValues({table: 'institution', target: inst, column: 'average_score', value: updatedAverage.toFixed(2)})
+            res.status(200).json({msg: 'New exercise registered', updated: true})
+        } catch (err) {
+            res.status(500).json({err:err, msg:"We have a problem", updated: false})
+        }
+    })
+
+    router.post('/logout', async function(req, res){
+        await req.logOut()
+        req.session.destroy()
+        await res.clearCookie('sessionId')
+        res.status(200).json({msg: 'User logged out', logged: false})
     })
 }
