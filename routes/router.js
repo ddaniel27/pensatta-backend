@@ -2,15 +2,16 @@ const bcrypt = require('bcryptjs')
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
 const { 
-    registerNewUser, 
-    checkEmail, 
-    createConnection, 
-    getNewAverage, 
-    getUpdatedCurrAverage, 
-    updateValues, 
-    registerNewExercise, 
-    incrementValues,
-    checkInstitution } = require('../controller/sqlQueries.controller')
+        registerNewUser, 
+        checkEmail, 
+        createConnection, 
+        getNewAverage, 
+        getUpdatedCurrAverage, 
+        updateValues, 
+        registerNewExercise, 
+        incrementValues,
+        checkInstitution
+    } = require('../controller/sqlQueries.controller')
 const connection = createConnection()
 
 passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", passReqToCallback:true},function verify(req, email, password, cb){
@@ -22,10 +23,10 @@ passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", 
             id: result[0].id,
             email: result[0].email,
             name: result[0].name,
-            inst: result[0].inst,
+            institution_code: result[0].institution_code,
             role: result[0].role,
-            borned_on: result[0].borned_on,
-            created_at: result[0].created_at
+            borned_date: result[0].borned_date,
+            created_date: result[0].created_date
         })
     })
 }))
@@ -65,7 +66,7 @@ module.exports = (router) => {
                     const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'num_students', table: 'institution', target: newUser.inst, score: 0})
                     await Promise.all([
                         registerNewUser(newUser),
-                        updateValues({table: 'institution', target: newUser.inst, column: 'average_score', value: result.finalAverage.toFixed(2)}),
+                        updateValues({table: 'institution', target: newUser.inst, column: 'average_score', value: result.finalAverage}),
                         incrementValues({table: 'institution', target: newUser.inst, column: 'num_students', increment: 1})
                     ])
                     res.status(200).json({msg: 'User registered', registered: true, exists: false})
@@ -98,14 +99,19 @@ module.exports = (router) => {
     async (req, res) => {
         try {
             const { exercise, score, time } = req.body
-            const { id, inst } = req.user
-            const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'total_exercises', table: 'users', target: id, score: score})
+            const { id, institution_code } = req.user
+            const [result, resultTime] = await Promise.all([ 
+                getNewAverage({prevAverage: 'average_score', totalItems: 'total_exercises', table: 'users', target: id, score: score}),
+                getNewAverage({prevAverage: 'average_time', totalItems: 'total_exercises', table: 'users', target: id, score: time})
+            ])
             await Promise.all([
-                updateValues({table: 'user', target: id, column: 'average_score', value: result.finalAverage.toFixed(2)}), 
-                registerNewExercise({exerciseId: exercise, score, studentId:id, time, created_at: new Date()})
+                updateValues({table: 'users', target: id, column: 'average_score', value: result.finalAverage}), 
+                updateValues({table: 'users', target: id, column: 'average_time', value: resultTime.finalAverage}),
+                incrementValues({table: 'users', target: id, column: 'total_exercises', increment: 1}),
+                registerNewExercise({exerciseId: exercise, score: score, studentId:id, time: time, created_at: new Date()})
             ])
             const updatedAverage = await getUpdatedCurrAverage(id, result.initAverage)
-            await updateValues({table: 'institution', target: inst, column: 'average_score', value: updatedAverage.toFixed(2)})
+            await updateValues({table: 'institution', target: institution_code, column: 'average_score', value: updatedAverage.toFixed(2)})
             res.status(200).json({msg: 'New exercise registered', updated: true})
         } catch (err) {
             res.status(500).json({err:err, msg:"We have a problem", updated: false})

@@ -34,7 +34,7 @@ function checkInstitution(institutionCode){
         if(!institutionCode) {
             reject(new Error('Missing parameters'))
         }
-        const query = `SELECT * FROM institution WHERE code = '${institutionCode}';`
+        const query = `SELECT * FROM institution WHERE id = '${institutionCode}';`
         connection.query(query, (err, result) => {
             if(err) { reject(err) }
             resolve(result)
@@ -57,10 +57,10 @@ function registerNewUser({ email, password, name, inst, borned_on, created_at })
 
 function registerNewExercise({ studentId, exerciseId, score, time, created_at }){
     return new Promise((resolve, reject) => {
-        if(!studentId || !exerciseId || !score || !time || !created_at) {
+        if(!studentId || exerciseId === undefined || exerciseId === null || score === undefined || score === null || !time || !created_at) {
             reject(new Error('Missing parameters'))
         }
-        const query = `INSERT INTO history (id, student_id, exercise_id, score, time, created_at) VALUES (NULL, '${studentId}', '${exerciseId}', '${score}', '${time}', '${created_at}');`
+        const query = `INSERT INTO history (id, user_id, exercise_id, score, time, date) VALUES (NULL, '${studentId}', '${exerciseId}', '${score}', '${time}', '${created_at}');`
         connection.query(query, (err, result) => {
             if(err) { reject(err) }
             resolve(result)
@@ -77,7 +77,7 @@ function getNewAverage({prevAverage, totalItems, table, target, score}){
         connection.query(query, (err, result) => {
             if(err) { reject(err) }
             if(!result.length) { reject(new Error('No user found')) }
-            const finalAverage = ((result[0][prevAverage] * result[0][totalItems]) + score) / (result[0][totalItems] + 1)
+            const finalAverage = ((Number(result[0][prevAverage] * result[0][totalItems]) + Number(score)) / (result[0][totalItems] + 1)).toFixed(2)
             resolve({initAverage: result[0][prevAverage], finalAverage})
         })
     })
@@ -92,10 +92,10 @@ function getUpdatedCurrAverage(studentId, initAverage){
         connection.query(query, (err, result) => {
             if(err) { reject(err) }
             if(!result.length) { reject(new Error('No user found')) }
-            const query2 = `SELECT average_score, num_students FROM institutions WHERE code = '${result[0].institution_code}';`
+            const query2 = `SELECT average_score, num_students FROM institution WHERE id = '${result[0].institution_code}';`
             connection.query(query2, (err, result2) => {
                 if(err) { reject(err) }
-                const finalAverage = ((result[0].average_score - initAverage) + result2[0].average_score * result2[0].num_students) / (result2[0].num_students)
+                const finalAverage = (((Number(result[0].average_score) - Number(initAverage)) + Number(result2[0].average_score * result2[0].num_students)) / Number(result2[0].num_students).toFixed(2))
                 resolve(finalAverage)
             })
         })
@@ -104,7 +104,7 @@ function getUpdatedCurrAverage(studentId, initAverage){
 
 function updateValues({table, target, column, value}){
     return new Promise((resolve, reject) => {
-        if(!table || !target || !column || !value) {
+        if(!table || !target || !column || value === undefined || value === null) {
             reject(new Error('Missing parameters'))
         }
         const query = `UPDATE ${table} SET ${column} = '${value}' WHERE id = '${target}';`
