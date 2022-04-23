@@ -10,7 +10,8 @@ const {
         updateValues, 
         registerNewExercise, 
         incrementValues,
-        checkInstitution
+        checkInstitution,
+        getInstitutions
     } = require('../controller/sqlQueries.controller')
 const connection = createConnection()
 
@@ -48,9 +49,12 @@ passport.deserializeUser(function(user, cb) {
 module.exports = (router) => {
     router.post('/register', async (req, res) => {
         try {
-            const { email } = req.body
+            const { email, inst } = req.body
             const isNewUser = await checkEmail(email)
             if(isNewUser.length) { res.status(200).json({msg: 'User already exists', exists: true}) }
+            if(inst === "ADMIN") { res.status(200).json({msg: 'Admin cannot register', exists: false}) }
+            const instExists = await checkInstitution(inst)
+            if(!instExists.length) { res.status(200).json({msg: 'Institution not found', exists: false}) }
             else {
                 const newUser = {
                     email: req.body.email,
@@ -60,17 +64,13 @@ module.exports = (router) => {
                     borned_on: req.body.borned_on,
                     created_at: new Date()
                 }
-                const instExists = await checkInstitution(newUser.inst)
-                if(!instExists.length) { res.status(200).json({msg: 'Institution not found', exists: false}) }
-                else {
-                    const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'num_students', table: 'institution', target: newUser.inst, score: 0})
-                    await Promise.all([
-                        registerNewUser(newUser),
-                        updateValues({table: 'institution', target: newUser.inst, column: 'average_score', value: result.finalAverage}),
-                        incrementValues({table: 'institution', target: newUser.inst, column: 'num_students', increment: 1})
-                    ])
-                    res.status(200).json({msg: 'User registered', registered: true, exists: false})
-                }
+                const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'num_students', table: 'institution', target: newUser.inst, score: 0})
+                await Promise.all([
+                    registerNewUser(newUser),
+                    updateValues({table: 'institution', target: newUser.inst, column: 'average_score', value: result.finalAverage}),
+                    incrementValues({table: 'institution', target: newUser.inst, column: 'num_students', increment: 1})
+                ])
+                res.status(200).json({msg: 'User registered', registered: true, exists: false})
             }
         } catch (err) {
             res.status(500).json({err:err, msg:"We have a problem", registered: false})
@@ -113,6 +113,43 @@ module.exports = (router) => {
             const updatedAverage = await getUpdatedCurrAverage(id, result.initAverage)
             await updateValues({table: 'institution', target: institution_code, column: 'average_score', value: updatedAverage.toFixed(2)})
             res.status(200).json({msg: 'New exercise registered', updated: true})
+        } catch (err) {
+            res.status(500).json({err:err, msg:"We have a problem", updated: false})
+        }
+    })
+
+    router.get('/institution',
+    function(req, res, next){
+        if(!req.isAuthenticated() || req.user.role !== 'admin'){
+            res.status(403).json({msg: 'User is not authorized', logged: false})
+        }else{
+            next()
+        }
+    },
+    async (_, res) => {
+        try{
+            const result = await getInstitutions()
+            res.status(200).json({msg: 'Institutions retrieved', institutions: result})
+        }catch(err){
+            res.status(500).json({err:err, msg:"We have a problem", institutions: []})
+        }
+    })
+
+    router.put('/institution',
+    function(req, res, next){
+        if(!req.isAuthenticated() || req.user.role !== 'admin'){
+            res.status(403).json({msg: 'User is not authorized', logged: false})
+        }else{
+            next()
+        }
+    },
+    async (req, res) => {
+        const { institution_code, field, value } = req.body
+        if(!institution_code || !field || value === undefined || value === null) { res.status(200).json({msg: 'Missing parameters', updated: false}) }
+        if(field === 'average_score' || field === 'num_students') { res.status(200).json({msg: 'Cannot update this field', updated: false}) }
+        try {
+            await updateValues({table: 'institution', target: institution_code, column: field, value: value})
+            res.status(200).json({msg: 'Institution updated', updated: true})
         } catch (err) {
             res.status(500).json({err:err, msg:"We have a problem", updated: false})
         }

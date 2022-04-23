@@ -133,6 +133,15 @@ function incrementValues({table, target, column, increment}){
     })
 }
 
+function getInstitutions(){
+    return new Promise((resolve, reject) => {
+        const query = `SELECT * FROM institution WHERE NOT (id='ADMIN');`
+        connection.query(query, (err, result) => {
+            if(err) { reject(err) }
+            resolve(result)
+        })
+    })
+}
 
 
 
@@ -145,5 +154,6 @@ module.exports = {
     updateValues,
     registerNewExercise,
     incrementValues,
-    checkInstitution
+    checkInstitution,
+    getInstitutions
 }
