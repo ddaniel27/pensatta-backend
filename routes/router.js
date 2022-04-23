@@ -11,7 +11,8 @@ const {
         registerNewExercise, 
         incrementValues,
         checkInstitution,
-        getInstitutions
+        getInstitutions,
+        registerNewInstitution
     } = require('../controller/sqlQueries.controller')
 const connection = createConnection()
 
@@ -118,42 +119,64 @@ module.exports = (router) => {
         }
     })
 
-    router.get('/institution',
-    function(req, res, next){
-        if(!req.isAuthenticated() || req.user.role !== 'admin'){
-            res.status(403).json({msg: 'User is not authorized', logged: false})
-        }else{
-            next()
-        }
-    },
-    async (_, res) => {
-        try{
-            const result = await getInstitutions()
-            res.status(200).json({msg: 'Institutions retrieved', institutions: result})
-        }catch(err){
-            res.status(500).json({err:err, msg:"We have a problem", institutions: []})
-        }
-    })
+    router.route('/institution')
+        .get(
+            function(req, res, next){
+                if(!req.isAuthenticated() || req.user.role !== 'admin'){
+                    res.status(403).json({msg: 'User is not authorized', logged: false})
+                }else{
+                    next()
+                }
+            },
+            async (_, res) => {
+                try{
+                    const result = await getInstitutions()
+                    res.status(200).json({msg: 'Institutions retrieved', institutions: result})
+                }catch(err){
+                    res.status(500).json({err:err, msg:"We have a problem", institutions: []})
+                }
+        })
 
-    router.put('/institution',
-    function(req, res, next){
-        if(!req.isAuthenticated() || req.user.role !== 'admin'){
-            res.status(403).json({msg: 'User is not authorized', logged: false})
-        }else{
-            next()
-        }
-    },
-    async (req, res) => {
-        const { institution_code, field, value } = req.body
-        if(!institution_code || !field || value === undefined || value === null) { res.status(200).json({msg: 'Missing parameters', updated: false}) }
-        if(field === 'average_score' || field === 'num_students') { res.status(200).json({msg: 'Cannot update this field', updated: false}) }
-        try {
-            await updateValues({table: 'institution', target: institution_code, column: field, value: value})
-            res.status(200).json({msg: 'Institution updated', updated: true})
-        } catch (err) {
-            res.status(500).json({err:err, msg:"We have a problem", updated: false})
-        }
-    })
+        .post(
+            function(req, res, next){
+                if(!req.isAuthenticated() || req.user.role !== 'admin'){
+                    res.status(403).json({msg: 'User is not authorized', logged: false})
+                }else{
+                    next()
+                }
+            },
+            async (req, res) => {
+                const { institution_code, name, email, country, province, city } = req.body
+                if(!institution_code || !name || !email || !country || !province || !city ) { return res.status(200).json({msg: 'Missing parameters', registered: false}) }
+                try {
+                    const instExists = await checkInstitution(institution_code)
+                    if(instExists.length) { return res.status(200).json({msg: 'Institution already exists', registered: false}) }
+                    await registerNewInstitution({institution_code: institution_code, name: name, email: email, country: country, province: province, city: city})
+                    res.status(200).json({msg: 'Institution registered', registered: true})
+                } catch (err) {
+                    res.status(500).json({err:err, msg:"We have a problem", registered: false})
+                }
+        })
+
+        .put(
+            function(req, res, next){
+                if(!req.isAuthenticated() || req.user.role !== 'admin'){
+                    res.status(403).json({msg: 'User is not authorized', logged: false})
+                }else{
+                    next()
+                }
+            },
+            async (req, res) => {
+                const { institution_code, field, value } = req.body
+                if(!institution_code || !field || value === undefined || value === null) { res.status(200).json({msg: 'Missing parameters', updated: false}) }
+                if(field === 'average_score' || field === 'num_students') { res.status(200).json({msg: 'Cannot update this field', updated: false}) }
+                try {
+                    await updateValues({table: 'institution', target: institution_code, column: field, value: value})
+                    res.status(200).json({msg: 'Institution updated', updated: true})
+                } catch (err) {
+                    res.status(500).json({err:err, msg:"We have a problem", updated: false})
+                }
+        })
 
     router.post('/logout', async function(req, res){
         await req.logOut()

@@ -55,6 +55,19 @@ function registerNewUser({ email, password, name, inst, borned_on, created_at })
     })
 }
 
+function registerNewInstitution({ name, email, institution_code, country, city, province }){
+    return new Promise((resolve, reject) => {
+        if(!name || !email || !institution_code || !country || !city || !province) {
+            reject(new Error('Missing parameters'))
+        }
+        const query = `INSERT INTO institution (id, name, email, country, city, province, num_students, average_score) VALUES ('${institution_code}', '${name}', '${email}', '${country}', '${city}', '${province}', '0', '0.0');`
+        connection.query(query, (err, result) => {
+            if(err) { reject(err) }
+            resolve(result)
+        })
+    })
+}
+
 function registerNewExercise({ studentId, exerciseId, score, time, created_at }){
     return new Promise((resolve, reject) => {
         if(!studentId || exerciseId === undefined || exerciseId === null || score === undefined || score === null || !time || !created_at) {
@@ -155,5 +168,6 @@ module.exports = {
     registerNewExercise,
     incrementValues,
     checkInstitution,
-    getInstitutions
+    getInstitutions,
+    registerNewInstitution
 }
