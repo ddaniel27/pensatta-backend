@@ -28,6 +28,7 @@ const configConnection = {
 }
 
 const pool = mysql.createPool(configConnection)
+pool.query('SELECT 1')
 const sessionStore = new mysqlStore({
     clearExpired:true, 
     checkExpirationInterval: 900000,

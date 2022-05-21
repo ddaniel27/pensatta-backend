@@ -15,6 +15,7 @@ const {
         registerNewInstitution
     } = require('../controller/sqlQueries.controller')
 const connection = createConnection()
+connection.query('SELECT 1')
 
 passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", passReqToCallback:true},function verify(req, email, password, cb){
     connection.query(`SELECT * FROM users WHERE email = '${email}';`, (err, result) => {

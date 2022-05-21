@@ -10,10 +10,11 @@ const configConnection = {
     multipleStatements: true
 }
 
-const connection = mysql.createConnection(configConnection)
+const connection = mysql.createPool(configConnection)
+connection.query('SELECT 1')
 
 function createConnection() {
-    return mysql.createConnection(configConnection)
+    return mysql.createPool(configConnection)
 }
 
 function checkEmail(email) {
