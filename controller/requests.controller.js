@@ -2,7 +2,6 @@ const bcrypt = require('bcryptjs')
 const { 
         registerNewUser, 
         checkEmail, 
-        createConnection, 
         getNewAverage, 
         getUpdatedCurrAverage, 
         updateValues, 
@@ -14,8 +13,6 @@ const {
         getHistory,
         getInstitutionName
     } = require('./sqlQueries.controller')
-const connection = createConnection()
-connection.query('SELECT 1')
 
 /* Handle Authentication */
 const handleAuth = (req, res, next)=>{
@@ -156,6 +153,9 @@ const logoutPostController = async (req, res) => {
     res.status(200).json({msg: 'User logged out', logged: false})
 }
 
+/* Profile Resumen Controllers */
+const profileResumenGetController = async (req, res) => {}
+
 module.exports = {
     registerPostController,
     loginGetController,
@@ -167,5 +167,6 @@ module.exports = {
     profileExercisesGetController,
     logoutPostController,
     handleAuth,
-    handleAuthAdmin
+    handleAuthAdmin,
+    profileResumenGetController
 }

@@ -12,7 +12,8 @@ const {
     institutionPostController,
     institutionPutController,
     profileExercisesGetController,
-    logoutPostController
+    logoutPostController,
+    profileResumenGetController
 
 } = require('../controller/requests.controller')
 
@@ -98,6 +99,6 @@ module.exports = (router) => {
     router.route('/profile/resumen/:id')
         .get(
             handleAuth,
-            async (req, res) => {}
+            profileResumenGetController
         )
 }
