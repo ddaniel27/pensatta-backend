@@ -7,7 +7,7 @@ const mysqlStore = require('express-mysql-session')(session)
 const cors = require('cors')
 
 const app = express()
-const port = process.env.PORT || 3000
+const port = 3001//process.env.PORT || 3000
 const router = express.Router()
 const routes = require('./routes/router')
 

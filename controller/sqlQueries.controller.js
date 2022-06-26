@@ -158,6 +158,33 @@ function getInstitutions(){
 }
 
 
+function getHistory(studentId){
+    return new Promise((resolve, reject) => {
+        if(!studentId) {
+            reject(new Error('Missing parameters'))
+        }
+        const query = `SELECT * FROM history WHERE user_id = '${studentId}' ORDER BY id DESC LIMIT 5;`
+        connection.query(query, (err, result) => {
+            if(err) { reject(err) }
+            resolve(result)
+        })
+    })
+}
+
+function getInstitutionName(institutionId){
+  return new Promise((resolve, reject) => {
+    if(!institutionId) {
+      reject(new Error('Missing parameters'))
+    }
+    const query = `SELECT name FROM institution WHERE id = '${institutionId}';`
+    connection.query(query, (err, result) => {
+      if(err) { reject(err) }
+      resolve(result[0].name)
+    })
+  })
+}
+
+
 
 module.exports = {
     registerNewUser,
@@ -170,5 +197,7 @@ module.exports = {
     incrementValues,
     checkInstitution,
     getInstitutions,
-    registerNewInstitution
+    registerNewInstitution,
+    getHistory,
+    getInstitutionName
 }
