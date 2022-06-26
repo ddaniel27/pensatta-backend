@@ -33,34 +33,34 @@ const handleAuthAdmin = (req, res, next)=>{
 
 /* Register controllers */
 const registerPostController = async (req, res) => {
-        try {
-            const { email, inst } = req.body
-            const isNewUser = await checkEmail(email)
-            if(isNewUser.length) { res.status(200).json({msg: 'User already exists', exists: true}) }
-            if(inst === "ADMIN") { res.status(200).json({msg: 'Admin cannot register', exists: false}) }
-            const instExists = await checkInstitution(inst)
-            if(!instExists.length) { res.status(200).json({msg: 'Institution not found', exists: false}) }
-            else {
-                const newUser = {
-                    email: req.body.email,
-                    password: bcrypt.hashSync(req.body.password, 10),
-                    name: req.body.name,
-                    inst: req.body.inst,
-                    borned_on: req.body.borned_on,
-                    created_at: new Date()
-                }
-                const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'num_students', table: 'institution', target: newUser.inst, score: 0})
-                await Promise.all([
-                    registerNewUser(newUser),
-                    updateValues({table: 'institution', target: newUser.inst, column: 'average_score', value: result.finalAverage}),
-                    incrementValues({table: 'institution', target: newUser.inst, column: 'num_students', increment: 1})
-                ])
-                res.status(200).json({msg: 'User registered', registered: true, exists: false})
+    try {
+        const { email, inst } = req.body
+        const isNewUser = await checkEmail(email)
+        if(isNewUser.length) { res.status(200).json({msg: 'User already exists', exists: true}) }
+        if(inst === "ADMIN") { res.status(200).json({msg: 'Admin cannot register', exists: false}) }
+        const instExists = await checkInstitution(inst)
+        if(!instExists.length) { res.status(200).json({msg: 'Institution not found', exists: false}) }
+        else {
+            const newUser = {
+                email: req.body.email,
+                password: bcrypt.hashSync(req.body.password, 10),
+                name: req.body.name,
+                inst: req.body.inst,
+                borned_on: req.body.borned_on,
+                created_at: new Date()
             }
-        } catch (err) {
-            res.status(500).json({err:err, msg:"We have a problem", registered: false})
+            const result = await getNewAverage({prevAverage: 'average_score', totalItems: 'num_students', table: 'institution', target: newUser.inst, score: 0})
+            await Promise.all([
+                registerNewUser(newUser),
+                updateValues({table: 'institution', target: newUser.inst, column: 'average_score', value: result.finalAverage}),
+                incrementValues({table: 'institution', target: newUser.inst, column: 'num_students', increment: 1})
+            ])
+            res.status(200).json({msg: 'User registered', registered: true, exists: false})
         }
+    } catch (err) {
+        res.status(500).json({err:err, msg:"We have a problem", registered: false})
     }
+}
 
 /* Login Controllers */
 const loginGetController = (req, res) => {
