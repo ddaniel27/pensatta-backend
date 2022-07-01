@@ -43,12 +43,12 @@ function checkInstitution(institutionCode){
     })
 }
 
-function registerNewUser({ email, password, name, inst, borned_on, created_at }) {
+function registerNewUser({ email, password, name, inst, borned_on, created_at, last_login }) {
     return new Promise((resolve, reject) => {
-        if(!email || !password || !name || !inst || !borned_on || !created_at) {
+        if(!email || !password || !name || !inst || !borned_on || !created_at || !last_login) {
             reject(new Error('Missing parameters'))
         }
-        const query = `INSERT INTO users (id, email, password, name, institution_code, borned_date, created_date, role, average_score, average_time, total_exercises) VALUES (NULL, '${email}', '${password}', '${name}', '${inst}', '${borned_on}', '${created_at}', 'student', '0.0', '0.0', '0');`
+        const query = `INSERT INTO users (id, email, password, name, institution_code, borned_date, created_date, role, average_score, average_time, total_exercises, last_login) VALUES (NULL, '${email}', '${password}', '${name}', '${inst}', '${borned_on}', '${created_at}', 'student', '0.0', '0.0', '0', '${last_login}');`
         connection.query(query, (err, result) => {
             if(err) { reject(err) }
             resolve(result)
@@ -158,12 +158,12 @@ function getInstitutions(){
 }
 
 
-function getHistory(studentId){
+function getHistory(studentId, limit=5){
     return new Promise((resolve, reject) => {
         if(!studentId) {
             reject(new Error('Missing parameters'))
         }
-        const query = `SELECT * FROM history WHERE user_id = '${studentId}' ORDER BY id DESC LIMIT 5;`
+        const query = `SELECT * FROM history WHERE user_id = '${studentId}' ORDER BY id DESC LIMIT ${limit};`
         connection.query(query, (err, result) => {
             if(err) { reject(err) }
             resolve(result)
@@ -184,7 +184,44 @@ function getInstitutionName(institutionId){
   })
 }
 
+function getExercises(values){
+    return new Promise((resolve, reject) => {
+        if(!values) {
+            reject(new Error('Missing parameters'))
+        }
+        const query = `SELECT * FROM exercises WHERE id IN (${values});`
+        connection.query(query, (err, result) => {
+            if(err) { reject(err) }
+            resolve(result)
+        })
+    })
+}
 
+function changeLastLogin(date, userId){
+    return new Promise((resolve, reject) => {
+        if(!date) {
+            reject(new Error('Missing parameters'))
+        }
+        const query = `UPDATE users SET last_login = '${date}' WHERE id = '${userId}';`
+        connection.query(query, (err, result) => {
+            if(err) { reject(err) }
+            resolve(result)
+        })
+    })
+}
+
+function getResumen(studentId){
+    return new Promise((resolve, reject) => {
+        if(!studentId) {
+            reject(new Error('Missing parameters'))
+        }
+        const query = `SELECT average_score, average_time, total_exercises FROM users WHERE id = '${studentId}';`
+        connection.query(query, (err, result) => {
+            if(err) { reject(err) }
+            resolve(result[0])
+        })
+    })
+}
 
 module.exports = {
     registerNewUser,
@@ -199,5 +236,8 @@ module.exports = {
     getInstitutions,
     registerNewInstitution,
     getHistory,
-    getInstitutionName
+    getInstitutionName,
+    getExercises,
+    changeLastLogin,
+    getResumen
 }

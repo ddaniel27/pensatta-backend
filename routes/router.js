@@ -13,6 +13,7 @@ const {
     institutionPutController,
     profileExercisesGetController,
     logoutPostController,
+    profileMetricsGetController,
     profileResumenGetController
 
 } = require('../controller/requests.controller')
@@ -27,15 +28,13 @@ passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", 
         if( err ) { return cb(err) }
         if( !result.length ) { return cb(null, false) }
         if( !bcrypt.compareSync(password, result[0].password) ) { return cb(null, false) }
-        return cb(null, {
-            id: result[0].id,
-            email: result[0].email,
-            name: result[0].name,
-            institution_code: result[0].institution_code,
-            role: result[0].role,
-            borned_date: result[0].borned_date,
-            created_date: result[0].created_date
-        })
+        return cb(
+            null,
+            { 
+                ...result[0],
+                password: undefined
+            }
+        )
     })
 }))
 
@@ -94,11 +93,19 @@ module.exports = (router) => {
             profileExercisesGetController
         )
 
-    router.post('/logout', logoutPostController)
-
-    router.route('/profile/resumen/:id')
+    router.route('/profile/metrics/:id')
         .get(
-            handleAuth,
+            // handleAuth,
+            profileMetricsGetController
+        )
+    
+        router.route('/profile/resumen/:id')
+        .get(
+            // handleAuth,
             profileResumenGetController
         )
+
+    
+    
+    router.post('/logout', logoutPostController)
 }
