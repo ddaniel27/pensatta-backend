@@ -188,17 +188,24 @@ const profileMetricsGetController = async (req, res) => {
             return acc
         }, {})
 
-        const aprObjResult = result.reduce((acc, item) => {
-            const { id, apropiacion } = item
-            const apr_score = idsAndScores.filter(item => item.exercise_id === id)
-            if(!acc[apropiacion]) {
-                acc[apropiacion] = apr_score.length
-            }
-            else {
-                acc[apropiacion] += apr_score.length
-            }
+        // const aprObjResult = result.reduce((acc, item) => {
+        //     const { id, apropiacion } = item
+        //     const apr_score = idsAndScores.filter(item => item.exercise_id === id)
+        //     if(!acc[apropiacion]) {
+        //         acc[apropiacion] = apr_score.length
+        //     }
+        //     else {
+        //         acc[apropiacion] += apr_score.length
+        //     }
+        //     return acc
+        // }, {})
+
+        const aprObjResult = idsAndScores.reduce((acc, item) => {
+            if(item.score < 60.0) { acc['1'] += 1 }
+            else if(item.score < 80.0) { acc['2'] += 1 }
+            else{ acc['3'] += 1 }
             return acc
-        }, {})
+        }, {'3': 0, '1': 0, '2': 0})
 
         // Response
         res.status(200).json({msg: 'Exercises retrieved', spiderValues: finalObjResult, apropiacionValues: aprObjResult})
