@@ -1,29 +1,20 @@
 const bcrypt = require('bcryptjs')
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
-const {
-    registerPostController,
-    loginGetController,
-    loginPostController,
-    handleAuth,
-    handleAuthAdmin,
-    exercisePostConstroller,
-    institutionGetController,
-    institutionPostController,
-    institutionPutController,
-    profileExercisesGetController,
-    logoutPostController,
-    profileMetricsGetController,
-    profileResumenGetController
+const { registerPostController } = require('../controllers/register.controller')
+const { profileExercisesGetController, profileMetricsGetController, profileResumenGetController } = require('../controllers/profile.controller')
+const { loginGetController, loginPostController } = require('../controllers/login.controller')
+const { logoutPostController } = require('../controllers/logout.controller')
+const { institutionGetController, institutionPostController, institutionPutController } = require('../controllers/institution.controller')
+const { exercisePostConstroller } = require('../controllers/exercise.controller')
+const { handleAuth, handleAuthAdmin } = require('../middlewares/auth.middleware')
 
-} = require('../controller/requests.controller')
-
-const {createConnection} = require('../controller/sqlQueries.controller')
+const { createConnection } = require('../controllers/sqlQueries.controller')
 const connection = createConnection()
 connection.query('SELECT 1')
 
 
-passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", passReqToCallback:true},function verify(req, email, password, cb){
+passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", passReqToCallback:true},function verify(_req, email, password, cb){
     connection.query(`SELECT * FROM users WHERE email = '${email}';`, (err, result) => {
         if( err ) { return cb(err) }
         if( !result.length ) { return cb(null, false) }
