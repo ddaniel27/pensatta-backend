@@ -1,6 +1,9 @@
+// Import modules
 const bcrypt = require('bcryptjs')
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
+
+//Import controllers
 const {
     registerPostController,
     loginGetController,
@@ -17,12 +20,12 @@ const {
     profileResumenGetController
 
 } = require('../controller/requests.controller')
-
 const {createConnection} = require('../controller/sqlQueries.controller')
+
 const connection = createConnection()
 connection.query('SELECT 1')
 
-
+// Configure passport with local strategy
 passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", passReqToCallback:true},function verify(req, email, password, cb){
     connection.query(`SELECT * FROM users WHERE email = '${email}';`, (err, result) => {
         if( err ) { return cb(err) }
@@ -38,6 +41,7 @@ passport.use(new LocalStrategy({usernameField:"email",passwordField:"password", 
     })
 }))
 
+// Passport session serialization
 passport.serializeUser(function(user, cb) {
     process.nextTick(function(){
         cb(null, user)
@@ -52,9 +56,10 @@ passport.deserializeUser(function(user, cb) {
 
 
 
-
+//Routes
 module.exports = (router) => {
-    router.post('/register', registerPostController)
+    router.route('/register')
+        .post(registerPostController)
 
     router.route('/login')
         .get(
@@ -66,22 +71,21 @@ module.exports = (router) => {
             loginPostController
         )
 
-    router.post('/exercise', 
-        handleAuth,
-        exercisePostConstroller
-    )
+    router.route('/exercise')
+        .post(
+            handleAuth,
+            exercisePostConstroller
+        )
 
     router.route('/institution')
         .get(
             handleAuth,
             institutionGetController
         )
-
         .post(
             handleAuthAdmin,
             institutionPostController
         )
-
         .put(
             handleAuthAdmin,
             institutionPutController
@@ -104,8 +108,7 @@ module.exports = (router) => {
             // handleAuth,
             profileResumenGetController
         )
-
     
-    
-    router.post('/logout', logoutPostController)
+    router.route('/logout')
+        .post(logoutPostController)
 }
